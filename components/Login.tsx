@@ -35,7 +35,13 @@ const Login: React.FC<Props> = ({ users, onLogin }) => {
       
       <div className="relative w-full max-w-md bg-white rounded-[48px] shadow-2xl p-12 overflow-hidden border border-white/10">
         <div className="flex flex-col items-center mb-10">
-          <div className="w-24 h-24 bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[32px] flex items-center justify-center text-white text-5xl font-black shadow-2xl shadow-indigo-200 mb-6 border-4 border-indigo-50">J</div>
+          <div className="w-full h-24 flex items-center justify-center mb-6 bg-white rounded-3xl p-4 shadow-sm">
+            <img 
+              src="https://www.jordanamco.com/img/JordanAMCO-web-2022.png" 
+              alt="JordanAMCO Logo" 
+              className="h-full object-contain"
+            />
+          </div>
           <h1 className="text-2xl font-black text-slate-900 text-center">بوابة JAMCO المركزية</h1>
           <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">نظام تشغيل وإدارة المصنع</p>
         </div>
@@ -81,6 +87,7 @@ const Login: React.FC<Props> = ({ users, onLogin }) => {
         <div className="mt-12 text-center">
           <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Jordan Advanced Metal Forming</p>
           <p className="text-[8px] font-bold text-slate-200 uppercase tracking-widest mt-1">Enterprise PM Suite v3.0</p>
+          <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.4em] mt-4 opacity-50">Designed by ssoub</p>
         </div>
       </div>
     </div>

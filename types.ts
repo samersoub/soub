@@ -2,10 +2,9 @@
 export enum TaskStatus {
   TODO = 'TODO',
   IN_PROGRESS = 'IN_PROGRESS',
-  BLOCKED = 'BLOCKED', // حالة جديدة: معطل بسبب مشكلة فنية
+  BLOCKED = 'BLOCKED',
   UNDER_REVIEW = 'UNDER_REVIEW',
   QUALITY_CHECK = 'QUALITY_CHECK',
-  REVIEW = 'REVIEW',
   DONE = 'DONE'
 }
 
@@ -17,6 +16,12 @@ export enum Department {
   QUALITY = 'QUALITY'
 }
 
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  MANAGER = 'MANAGER',
+  TECHNICIAN = 'TECHNICIAN'
+}
+
 export const WORKFLOW_ORDER = [
   Department.PLANNING,
   Department.ENGINEERING,
@@ -25,80 +30,56 @@ export const WORKFLOW_ORDER = [
   Department.QUALITY
 ];
 
-export interface ChecklistItem {
-  id: string;
-  label: string;
-  isCompleted: boolean;
-  requiredRole?: UserRole;
-}
-
-export interface ProductionIssue {
-  id: string;
-  reportedBy: string;
-  department: Department;
-  description: string;
-  type: 'MACHINE_FAILURE' | 'DESIGN_ERROR' | 'MATERIAL_MISSING' | 'OTHER';
-  createdAt: string;
-  resolvedAt?: string;
-}
-
-export interface StageAsset {
+export interface Goal {
   id: string;
   name: string;
-  url: string;
-  type: 'IMAGE' | 'PDF' | 'DWG' | 'DOC';
-  uploadedBy: string;
-  department: Department;
-  createdAt: string;
+  ownerId: string;
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  dueDate: string;
+  color: string;
 }
 
-export interface ProductionData {
-  dueDate?: string;
-  materials: { id: string; name: string; quantity: number; isAvailable: boolean }[];
-  assignedMachineId?: string;
-  assets: StageAsset[];
-  stageNotes: Record<Department, string>;
-  // قوائم فحص لكل مرحلة
-  checklists: Record<Department, ChecklistItem[]>;
-  // سجل المشاكل الفنية
-  issues: ProductionIssue[];
-  // عدد مرات العودة للخلف (Rework)
-  reworkCount: number;
-  // التكاليف (Used in ReportsView)
-  estimatedCost?: number;
-  actualCost?: number;
+export interface TaskComment {
+  id: string;
+  userId: string;
+  userName: string;
+  text: string;
+  timestamp: string;
 }
 
-export interface Task {
+export interface Activity {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;
+  taskId?: string;
+  taskTitle?: string;
+  timestamp: string;
+}
+
+export interface Doc {
   id: string;
   title: string;
-  description: string;
-  status: TaskStatus;
-  currentDepartment: Department;
-  priority: 'URGENT' | 'HIGH' | 'NORMAL' | 'LOW';
-  assignees: string[];
-  listId: string;
-  createdAt: string;
-  productionData: ProductionData;
-  activities: any[];
-  // التعليقات (Used in BoardView)
-  comments: any[];
+  content: string;
+  lastEditedBy: string;
+  updatedAt: string;
+  isFavorite?: boolean;
 }
 
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  GENERAL_MANAGER = 'GENERAL_MANAGER',
-  DEPARTMENT_HEAD = 'DEPARTMENT_HEAD',
-  TECHNICIAN = 'TECHNICIAN'
-}
-
-export interface User {
+export interface Subtask {
   id: string;
-  name: string;
-  role: UserRole;
-  password?: string;
-  department?: Department;
-  avatar?: string;
+  title: string;
+  isCompleted: boolean;
+  subtasks?: Subtask[]; 
+}
+
+export interface CustomFieldDefinition {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'dropdown' | 'unit' | 'progress' | 'checkbox';
+  options?: string[];
 }
 
 export interface Machine {
@@ -108,17 +89,30 @@ export interface Machine {
   status: 'RUNNING' | 'IDLE' | 'MAINTENANCE';
 }
 
-export interface List {
+export interface Automation {
   id: string;
   name: string;
-  spaceId: string;
+  trigger: 'STATUS_CHANGED' | 'TASK_CREATED' | 'DUE_DATE_NEAR';
+  condition?: string;
+  action: 'NOTIFY' | 'SET_ASSIGNEE' | 'MOVE_LIST';
+  params?: any;
 }
 
-export interface Folder {
+export interface Task {
   id: string;
-  name: string;
-  spaceId: string;
-  lists: List[];
+  title: string;
+  description: string;
+  status: TaskStatus | string;
+  currentDepartment: Department;
+  priority: 'URGENT' | 'HIGH' | 'NORMAL' | 'LOW';
+  assignees: string[];
+  watchers: string[];
+  listId: string;
+  createdAt: string;
+  productionData: any;
+  comments: TaskComment[];
+  subtasks: Subtask[];
+  estimatedHours?: number;
 }
 
 export interface Space {
@@ -129,35 +123,41 @@ export interface Space {
   color: string;
   folders: Folder[];
   lists: List[];
+  customStatuses?: string[];
 }
 
-export interface Automation {
-  id: string;
-  name: string;
-  trigger: string;
-  action: string;
-  enabled: boolean;
-}
+export interface Folder { id: string; name: string; spaceId: string; lists: List[]; }
+export interface List { id: string; name: string; spaceId: string; folderId?: string; }
 
 export interface Workspace {
   id: string;
   name: string;
   spaces: Space[];
   machines: Machine[];
-  // الحقول المخصصة (Used in mockData)
-  customFieldDefinitions: any[];
-  // الأتمتة (Used in AdminDashboard)
+  customFieldDefinitions: CustomFieldDefinition[];
   automations: Automation[];
+  goals: Goal[];
+  docs: Doc[];
+  activities: Activity[];
 }
 
-export type ViewType = 'LIST' | 'BOARD' | 'DASHBOARD' | 'ADMIN';
+export type ViewType = 'LIST' | 'BOARD' | 'DASHBOARD' | 'ADMIN' | 'TABLE' | 'CALENDAR' | 'WORKLOAD' | 'GOALS' | 'MINDMAP' | 'PORTFOLIO' | 'DOCS';
+
+export interface User {
+  id: string;
+  name: string;
+  role: UserRole | string;
+  password?: string;
+  avatar: string;
+  capacity?: number;
+}
 
 export interface AppNotification {
   id: string;
-  taskId?: string;
   title: string;
   message: string;
-  type: 'STATUS' | 'ISSUE' | 'SYSTEM' | 'URGENT';
+  type: string;
   isRead: boolean;
   createdAt: string;
+  taskId?: string;
 }

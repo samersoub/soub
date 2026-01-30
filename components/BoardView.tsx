@@ -18,17 +18,21 @@ const BoardView: React.FC<BoardViewProps> = ({ tasks, onTaskClick }) => {
           <div key={status} className="flex-shrink-0 w-80 flex flex-col">
             <div className="flex items-center justify-between mb-4 px-2">
               <div className="flex items-center gap-2">
+                {/* Fixed TaskStatus mapping - changed REVIEW to UNDER_REVIEW and added BLOCKED */}
                 <span className={`w-2.5 h-2.5 rounded-full ${
                   status === TaskStatus.TODO ? 'bg-slate-300' :
                   status === TaskStatus.IN_PROGRESS ? 'bg-blue-500' :
+                  status === TaskStatus.BLOCKED ? 'bg-rose-500' :
                   status === TaskStatus.QUALITY_CHECK ? 'bg-purple-500' :
-                  status === TaskStatus.REVIEW ? 'bg-amber-500' : 'bg-emerald-500'
+                  status === TaskStatus.UNDER_REVIEW ? 'bg-amber-500' : 'bg-emerald-500'
                 }`} />
                 <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider">
+                  {/* Fixed TaskStatus labels - changed REVIEW to UNDER_REVIEW and added BLOCKED */}
                   {status === TaskStatus.TODO ? 'قيد الانتظار' :
                    status === TaskStatus.IN_PROGRESS ? 'قيد التنفيذ' :
+                   status === TaskStatus.BLOCKED ? 'معلق / متوقف' :
                    status === TaskStatus.QUALITY_CHECK ? 'فحص الجودة' :
-                   status === TaskStatus.REVIEW ? 'للمراجعة' : 'مكتمل'}
+                   status === TaskStatus.UNDER_REVIEW ? 'للمراجعة' : 'مكتمل'}
                 </h3>
                 <span className="text-xs bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-bold">
                   {statusTasks.length}

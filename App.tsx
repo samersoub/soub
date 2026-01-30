@@ -3,14 +3,23 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ListView from './components/ListView';
 import BoardView from './components/BoardView';
+import TableView from './components/TableView';
+import CalendarView from './components/CalendarView';
 import DashboardView from './components/DashboardView';
+import WorkloadView from './components/WorkloadView';
+import GoalsView from './components/GoalsView';
+import MindMapView from './components/MindMapView';
+import PortfolioView from './components/PortfolioView';
+import WorkspaceDocs from './components/WorkspaceDocs';
+import PulseView from './components/PulseView';
 import TaskWorkflowModal from './components/TaskWorkflowModal';
 import CommandCenter from './components/CommandCenter';
 import AdminDashboard from './components/AdminDashboard';
 import NotificationCenter from './components/NotificationCenter';
+import ReportsView from './components/ReportsView';
 import Login from './components/Login';
 import { storage } from './services/storage';
-import { ViewType, Task, Workspace, User, UserRole, Department, TaskStatus, AppNotification } from './types';
+import { ViewType, Task, Workspace, User, UserRole, Department, TaskStatus, AppNotification, Activity, Doc } from './types';
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -21,10 +30,11 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   
   const [activeListId, setActiveListId] = useState<string | null>(null);
-  const [view, setView] = useState<ViewType>('DASHBOARD');
+  const [view, setView] = useState<ViewType | 'REPORTS'>('DASHBOARD');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isPulseOpen, setIsPulseOpen] = useState(true);
 
   useEffect(() => {
     storage.saveWorkspace(workspace);
@@ -32,62 +42,37 @@ const App: React.FC = () => {
     storage.saveUsers(users);
   }, [workspace, tasks, users]);
 
-  const addNotification = (title: string, message: string, type: any, taskId?: string) => {
-    const newNotif: AppNotification = {
-      id: Math.random().toString(),
-      taskId, title, message, type,
-      isRead: false,
-      createdAt: new Date().toISOString()
+  const addActivity = (action: string, task?: Task) => {
+    const newActivity: Activity = {
+       id: `act-${Date.now()}`,
+       userId: currentUser!.id,
+       userName: currentUser!.name,
+       action,
+       taskId: task?.id,
+       taskTitle: task?.title,
+       timestamp: new Date().toISOString()
     };
-    setNotifications(prev => [newNotif, ...prev]);
+    setWorkspace(prev => ({...prev, activities: [newActivity, ...(prev.activities || [])].slice(0, 50)}));
   };
 
   const handleUpdateTask = (updatedTask: Task) => {
-    const previousTask = tasks.find(t => t.id === updatedTask.id);
-    
-    if (previousTask) {
-      if (previousTask.currentDepartment !== updatedTask.currentDepartment) {
-        addNotification('مهمة جديدة للقسم', `وصل مشروع "${updatedTask.title}" لمرحلة ${updatedTask.currentDepartment}`, 'STATUS', updatedTask.id);
-      }
-      if (previousTask.status !== TaskStatus.BLOCKED && updatedTask.status === TaskStatus.BLOCKED) {
-        addNotification('⚠️ تنبيه: تعطل مشروع', `تم إيقاف العمل في "${updatedTask.title}" بسبب مشكلة فنية`, 'URGENT', updatedTask.id);
-      }
-    }
-    
     setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    addActivity(`حدث المهمة: ${updatedTask.title}`, updatedTask);
     if(selectedTask?.id === updatedTask.id) setSelectedTask(updatedTask);
   };
 
   const handleAddTask = () => {
     let listIdToUse = activeListId;
     if (!listIdToUse) {
-       const allLists = workspace.spaces.flatMap(s => [...s.lists, ...s.folders.flatMap(f => f.lists)]);
-       if (allLists.length > 0) {
-         listIdToUse = allLists[0].id;
-         setActiveListId(listIdToUse);
-       } else {
-         alert("يرجى بناء هيكلية المصنع أولاً.");
-         setView('ADMIN');
-         return;
-       }
+       const firstList = workspace.spaces[0]?.lists[0] || workspace.spaces[0]?.folders[0]?.lists[0];
+       if (firstList) listIdToUse = firstList.id;
     }
 
-    const defaultChecklists: any = {
-      PLANNING: [{ id: 'c1', label: 'مراجعة المخطط الأولي مع العميل', isCompleted: false }],
-      ENGINEERING: [
-        { id: 'c2', label: 'تجهيز ملفات DXF/DWG للماكينات', isCompleted: false },
-        { id: 'c3', label: 'التأكد من سماكة المعدن المطلوبة', isCompleted: false }
-      ],
-      PROCUREMENT: [{ id: 'c4', label: 'توفير الصاج والاكسسوارات من المستودع', isCompleted: false }],
-      PRODUCTION: [
-        { id: 'c5', label: 'إتمام عملية القص الليزر', isCompleted: false },
-        { id: 'c6', label: 'إتمام عملية الثني CNC', isCompleted: false }
-      ],
-      QUALITY: [
-        { id: 'c7', label: 'فحص جودة الطلاء/التشطيب', isCompleted: false },
-        { id: 'c8', label: 'مطابقة الأبعاد النهائية', isCompleted: false }
-      ]
-    };
+    if (!listIdToUse) {
+       alert("يرجى بناء الهيكلية (Spaces/Lists) أولاً.");
+       setView('ADMIN');
+       return;
+    }
 
     const newTask: Task = {
       id: `job-${Date.now()}`,
@@ -97,20 +82,22 @@ const App: React.FC = () => {
       currentDepartment: Department.PLANNING,
       priority: 'NORMAL',
       assignees: [currentUser!.name],
+      watchers: [currentUser!.id],
       listId: listIdToUse,
       createdAt: new Date().toISOString(),
+      subtasks: [],
+      estimatedHours: 8,
       productionData: { 
         materials: [],
-        assets: [], 
-        stageNotes: { PLANNING: '', ENGINEERING: '', PROCUREMENT: '', PRODUCTION: '', QUALITY: '' },
-        checklists: defaultChecklists,
-        issues: [],
-        reworkCount: 0
+        customFields: {},
+        timeEntries: [],
+        isTimerRunning: false,
+        issues: []
       },
-      activities: [{ id: Date.now(), userName: currentUser!.name, action: "فتح أمر تشغيل جديد في قسم التخطيط", timestamp: new Date().toISOString() }],
-      comments: [] // Initialize comments array
+      comments: []
     };
     setTasks([newTask, ...tasks]);
+    addActivity(`أنشأ مهمة جديدة`, newTask);
     setSelectedTask(newTask);
   };
 
@@ -139,43 +126,64 @@ const App: React.FC = () => {
         />
       )}
 
-      <Sidebar workspace={workspace} activeListId={activeListId} userRole={currentUser!.role} onSelectList={(id, customView) => { setActiveListId(id); setView(customView || 'LIST'); }} />
+      <Sidebar workspace={workspace} activeListId={activeListId} userRole={currentUser!.role as UserRole} onSelectList={(id, customView) => { setActiveListId(id); setView(customView || 'LIST'); }} />
+
+      {isPulseOpen && <PulseView activities={workspace.activities || []} />}
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-24 bg-white border-b border-slate-100 flex items-center px-10 justify-between z-20">
-          <div className="flex items-center gap-6">
-            <nav className="flex gap-2 p-1.5 bg-slate-50 rounded-2xl">
+        <header className="h-20 bg-white border-b border-slate-100 flex items-center px-10 justify-between z-20 overflow-x-auto">
+          <div className="flex items-center gap-6 min-w-max">
+            <nav className="flex gap-1 p-1 bg-slate-50 rounded-xl">
               {[
                 { id: 'DASHBOARD', label: 'المراقبة', icon: '📊' },
-                { id: 'LIST', label: 'سير الإنتاج', icon: '⏳' },
-                { id: 'ADMIN', label: 'الإدارة', icon: '🛡️', adminOnly: true }
+                { id: 'LIST', label: 'قائمة', icon: '☰' },
+                { id: 'BOARD', label: 'بورد', icon: '📋' },
+                { id: 'TABLE', label: 'جدول', icon: '▦' },
+                { id: 'CALENDAR', label: 'تقويم', icon: '📅' },
+                { id: 'MINDMAP', label: 'خريطة', icon: '🧠' },
+                { id: 'PORTFOLIO', label: 'محافظ', icon: '💼' },
+                { id: 'DOCS', label: 'مستندات', icon: '📄' },
+                { id: 'GOALS', label: 'أهداف', icon: '🎯' },
+                { id: 'REPORTS', label: 'تقارير', icon: '📈' },
+                { id: 'ADMIN', label: 'إدارة', icon: '⚙️', adminOnly: true }
               ].filter(v => !v.adminOnly || currentUser!.role === UserRole.ADMIN).map((v) => (
-                <button key={v.id} onClick={() => setView(v.id as ViewType)} className={`text-[11px] font-black px-6 py-3 rounded-xl transition-all flex items-center gap-2 ${view === v.id ? 'bg-white text-indigo-700 shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}>
-                  <span className="text-base">{v.icon}</span> {v.label}
+                <button 
+                  key={v.id} 
+                  onClick={() => setView(v.id as any)} 
+                  className={`text-[10px] font-black px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${view === v.id ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <span className="text-sm">{v.icon}</span> {v.label}
                 </button>
               ))}
             </nav>
-            <button onClick={handleAddTask} className="px-8 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">+ أمر تشغيل</button>
+            <button onClick={handleAddTask} className="px-6 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black shadow-lg shadow-indigo-100">+ مهمة</button>
           </div>
 
           <div className="flex items-center gap-6">
-            <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="relative">
-               <span className="text-2xl">🔔</span>
-               {notifications.filter(n=>!n.isRead).length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">{notifications.filter(n=>!n.isRead).length}</span>}
-            </button>
-            <div className="flex items-center gap-4 bg-slate-50 p-2 pr-6 rounded-[24px] border border-slate-100">
-               <div className="text-left ml-4">
-                  <div className="text-xs font-black text-slate-900">{currentUser!.name}</div>
-                  <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{currentUser!.department || 'الإدارة'}</div>
+            <button onClick={() => setIsPulseOpen(!isPulseOpen)} className={`text-xl transition-all ${isPulseOpen ? 'text-indigo-600 scale-110' : 'text-slate-400 opacity-50'}`} title="تبديل عرض النبض">⚡</button>
+            <button onClick={() => setIsSearchOpen(true)} className="text-slate-400 hover:text-indigo-600 transition-all text-xl">🔍</button>
+            <button onClick={() => setIsNotifOpen(true)} className="text-slate-400 hover:text-indigo-600 transition-all text-xl">🔔</button>
+            <div className="flex items-center gap-3 bg-slate-50 p-1.5 pr-4 rounded-full border border-slate-100">
+               <div className="text-left ml-2">
+                  <div className="text-[10px] font-black text-slate-800">{currentUser!.name}</div>
+                  <div className="text-[8px] font-black text-indigo-500 uppercase">{currentUser!.role}</div>
                </div>
-               <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg text-xl">{currentUser!.avatar}</div>
+               <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg text-sm">{currentUser!.avatar}</div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-hidden flex flex-col bg-[#FAFAFC]">
+        <main className="flex-1 overflow-hidden flex flex-col bg-white">
           {view === 'DASHBOARD' && <DashboardView spaces={workspace.spaces} tasks={tasks} machines={workspace.machines} />}
-          {view === 'LIST' && <ListView tasks={tasks.filter(t => !activeListId || t.listId === activeListId)} listName={activeListId ? 'المسار الزمني' : 'كافة المشاريع'} user={currentUser!} onUpdateTask={handleUpdateTask} />}
+          {view === 'LIST' && <ListView tasks={tasks.filter(t => !activeListId || t.listId === activeListId)} listName={activeListId ? 'سير العمل' : 'كافة المهام'} user={currentUser!} onUpdateTask={setSelectedTask} />}
+          {view === 'BOARD' && <BoardView tasks={tasks.filter(t => !activeListId || t.listId === activeListId)} onTaskClick={setSelectedTask} />}
+          {view === 'TABLE' && <TableView tasks={tasks.filter(t => !activeListId || t.listId === activeListId)} customFields={workspace.customFieldDefinitions} onTaskClick={setSelectedTask} />}
+          {view === 'CALENDAR' && <CalendarView tasks={tasks.filter(t => !activeListId || t.listId === activeListId)} onTaskClick={setSelectedTask} />}
+          {view === 'MINDMAP' && <MindMapView tasks={tasks.filter(t => !activeListId || t.listId === activeListId)} listName={activeListId ? 'هيكلية المشروع' : 'كافة المشاريع'} />}
+          {view === 'PORTFOLIO' && <PortfolioView workspace={workspace} tasks={tasks} />}
+          {view === 'DOCS' && <WorkspaceDocs docs={workspace.docs || []} user={currentUser!} onUpdateDocs={(newDocs) => setWorkspace({...workspace, docs: newDocs})} />}
+          {view === 'GOALS' && <GoalsView goals={workspace.goals || []} />}
+          {view === 'REPORTS' && <ReportsView tasks={tasks} spaces={workspace.spaces} />}
           {view === 'ADMIN' && <AdminDashboard workspace={workspace} users={users} onUpdateWorkspace={setWorkspace} onUpdateUsers={setUsers} onReset={storage.clear} />}
         </main>
       </div>

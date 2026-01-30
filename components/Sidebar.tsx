@@ -77,8 +77,12 @@ const Sidebar: React.FC<SidebarProps> = ({ workspace, activeListId, userRole, on
     <div className="w-80 h-full bg-white border-l border-slate-100 flex flex-col overflow-hidden shadow-2xl z-30">
       <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-white">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-indigo-100">
-            {workspace.name[0]}
+          <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-1 shadow-xl shadow-slate-100 border border-slate-50">
+            <img 
+              src="https://www.jordanamco.com/img/JordanAMCO-web-2022.png" 
+              alt="JordanAMCO Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <div className="flex flex-col">
              <span className="font-black text-slate-900 text-sm leading-tight line-clamp-2">{workspace.name}</span>
@@ -123,10 +127,13 @@ const Sidebar: React.FC<SidebarProps> = ({ workspace, activeListId, userRole, on
       <div className="p-6 bg-slate-50 border-t border-slate-100">
         <button 
           onClick={() => onSelectList(activeListId, 'LIST')}
-          className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-[20px] shadow-xl shadow-indigo-100 transition-all flex items-center justify-center active:scale-95"
+          className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-[20px] shadow-xl shadow-indigo-100 transition-all flex items-center justify-center active:scale-95 mb-4"
         >
           <span className="ml-2 text-lg font-bold">+</span> إنشاء أمر تشغيل
         </button>
+        <div className="text-center">
+           <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Designed by ssoub</p>
+        </div>
       </div>
     </div>
   );
