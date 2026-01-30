@@ -1,103 +1,90 @@
 
 import React from 'react';
-import { Task, TaskStatus, Department, WORKFLOW_ORDER, User } from '../types';
+import { Task, TaskStatus } from '../types';
 
 interface ListViewProps {
   tasks: Task[];
-  listName: string;
-  user: User;
   onUpdateTask: (task: Task) => void;
+  onAddTask: (status?: string) => void;
 }
 
-const ListView: React.FC<ListViewProps> = ({ tasks, listName, user, onUpdateTask }) => {
+const ListView: React.FC<ListViewProps> = ({ tasks, onUpdateTask, onAddTask }) => {
   const groups = Object.values(TaskStatus);
 
-  const renderProgress = (task: Task) => {
-    const currentIndex = WORKFLOW_ORDER.indexOf(task.currentDepartment);
-    const isBlocked = task.status === TaskStatus.BLOCKED;
-
-    return (
-      <div className="flex gap-1 items-center">
-        {WORKFLOW_ORDER.map((_, i) => (
-          <div 
-            key={i} 
-            className={`h-1.5 w-5 rounded-full transition-all ${
-              isBlocked && i === currentIndex ? 'bg-rose-500 animate-pulse' :
-              i < currentIndex ? 'bg-emerald-500' : (i === currentIndex ? 'bg-indigo-600' : 'bg-slate-200')
-            }`} 
-          />
-        ))}
-      </div>
-    );
-  };
-
   return (
-    <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-[#FAFAFC]">
-      <header className="mb-10 flex justify-between items-end">
-         <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{listName}</h1>
-            <p className="text-slate-400 text-[10px] mt-2 font-black uppercase tracking-[0.2em]">مراقبة المسار الإنتاجي النشط</p>
-         </div>
-      </header>
-
-      <div className="space-y-12">
+    <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
+      <div className="p-6 space-y-12">
         {groups.map(status => {
           const statusTasks = tasks.filter(t => t.status === status);
-          if (statusTasks.length === 0) return null;
-
+          
           return (
-            <section key={status}>
-              <div className="flex items-center gap-3 mb-6 px-4">
-                 <div className={`w-2 h-6 rounded-full ${status === TaskStatus.BLOCKED ? 'bg-rose-500' : 'bg-slate-300'}`} />
-                 <h3 className={`text-[11px] font-black uppercase tracking-widest ${status === TaskStatus.BLOCKED ? 'text-rose-600' : 'text-slate-400'}`}>
-                   {status === TaskStatus.BLOCKED ? 'معيقات فنية (تتطلب تدخل)' : status}
-                 </h3>
-                 <span className="text-[10px] bg-white border border-slate-100 px-2 py-0.5 rounded-lg text-slate-400 font-bold">{statusTasks.length}</span>
+            <div key={status} className="space-y-1">
+              {/* Group Header */}
+              <div className="flex items-center gap-3 mb-2 px-2 py-1 sticky top-0 bg-white z-10">
+                 <button className="text-[10px] text-slate-300">▼</button>
+                 <span className={`px-2 py-0.5 rounded text-[10px] font-black text-white ${
+                   status === TaskStatus.TODO ? 'bg-slate-400' : 
+                   status === TaskStatus.DONE ? 'bg-emerald-500' : 'bg-indigo-500'
+                 }`}>{status}</span>
+                 <span className="text-[11px] text-slate-400 font-bold">{statusTasks.length}</span>
               </div>
-              
-              <div className="space-y-4">
-                {statusTasks.map(task => (
-                  <div 
-                    key={task.id} 
-                    onClick={() => onUpdateTask(task)}
-                    className={`p-6 rounded-[36px] border flex items-center transition-all cursor-pointer group shadow-sm hover:shadow-xl ${
-                      task.status === TaskStatus.BLOCKED ? 'bg-rose-50 border-rose-200' : 'bg-white border-slate-100 hover:border-indigo-200'
-                    }`}
-                  >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ml-6 transition-colors ${
-                      task.status === TaskStatus.BLOCKED ? 'bg-rose-500 text-white' : 'bg-slate-50 group-hover:bg-indigo-50'
-                    }`}>
-                       {task.status === TaskStatus.BLOCKED ? '⚠️' : 
-                        (task.currentDepartment === Department.PLANNING ? '📋' : 
-                         task.currentDepartment === Department.ENGINEERING ? '📐' : '🏭')}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                       <h4 className={`text-sm font-black mb-1 transition-colors ${task.status === TaskStatus.BLOCKED ? 'text-rose-900' : 'text-slate-800 group-hover:text-indigo-600'}`}>
-                         {task.title}
-                       </h4>
-                       <div className="flex items-center gap-6">
-                          <span className="text-[10px] font-black text-slate-400 uppercase">قسم: {task.currentDepartment}</span>
-                          <div className="w-[1px] h-3 bg-slate-200" />
-                          {renderProgress(task)}
-                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-8 ml-4">
-                       {task.productionData.issues.filter(i=>!i.resolvedAt).length > 0 && (
-                          <div className="text-[10px] font-black text-rose-500 bg-rose-100 px-3 py-1 rounded-full animate-pulse">
-                             مشكلة فنية نشطة
-                          </div>
-                       )}
-                       <div className="text-left">
-                          <div className="text-[10px] font-black text-slate-400 uppercase mb-1">أمر التشغيل</div>
-                          <span className="text-xs font-mono font-black text-slate-700">{task.id.split('-')[1]}</span>
-                       </div>
+              {/* Table Header (Only if first group or visible) */}
+              <div className="flex items-center text-[10px] font-black text-slate-300 border-b border-slate-50 px-2 py-2 uppercase tracking-wider">
+                 <div className="w-8 ml-2"></div>
+                 <div className="flex-1">Name</div>
+                 <div className="w-24 px-4">Assignee</div>
+                 <div className="w-24 px-4">Due Date</div>
+                 <div className="w-24 px-4">Priority</div>
+                 <div className="w-24 px-4">Status</div>
+                 <div className="w-12 px-4"></div>
+              </div>
+
+              {/* Task Rows */}
+              {statusTasks.map(task => (
+                <div 
+                  key={task.id} 
+                  onClick={() => onUpdateTask(task)}
+                  className="flex items-center group hover:bg-slate-50 border-b border-slate-50 px-2 py-2 cursor-pointer transition-colors"
+                >
+                  <div className="w-8 ml-2 flex justify-center">
+                     <div className="w-4 h-4 border-2 border-slate-200 rounded-full group-hover:border-indigo-400"></div>
+                  </div>
+                  <div className="flex-1 text-xs font-bold text-slate-700 group-hover:text-indigo-600 truncate">
+                    {task.title}
+                  </div>
+                  <div className="w-24 px-4 flex justify-center opacity-40 group-hover:opacity-100 transition-opacity">
+                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">👤</div>
+                  </div>
+                  <div className="w-24 px-4 flex justify-center opacity-40 group-hover:opacity-100">
+                    <span className="text-[14px]">📅</span>
+                  </div>
+                  <div className="w-24 px-4 flex justify-center opacity-40 group-hover:opacity-100">
+                    <span className="text-[14px]">🏳️</span>
+                  </div>
+                  <div className="w-24 px-4 flex justify-center">
+                    <div className={`text-[9px] font-black border px-2 py-0.5 rounded uppercase ${
+                      task.status === TaskStatus.DONE ? 'border-emerald-500 text-emerald-500' : 'border-slate-200 text-slate-400'
+                    }`}>
+                      {task.status}
                     </div>
                   </div>
-                ))}
+                  <div className="w-12 px-4 flex justify-center opacity-0 group-hover:opacity-100">
+                     <span className="text-slate-400">💬</span>
+                  </div>
+                </div>
+              ))}
+
+              {/* Inline Add Task */}
+              <div className="px-10 py-2">
+                 <button 
+                   onClick={(e) => { e.stopPropagation(); onAddTask(status); }}
+                   className="text-[11px] font-bold text-slate-300 hover:text-indigo-600 transition-colors"
+                 >
+                   + Add Task
+                 </button>
               </div>
-            </section>
+            </div>
           );
         })}
       </div>

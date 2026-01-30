@@ -11,7 +11,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ workspace, activeListId, userRole, onSelectList }) => {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ spaces: true });
 
   const toggle = (id: string) => {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
@@ -21,119 +21,99 @@ const Sidebar: React.FC<SidebarProps> = ({ workspace, activeListId, userRole, on
     <button
       key={list.id}
       onClick={() => onSelectList(list.id, 'LIST')}
-      className={`flex items-center w-full px-4 py-1.5 text-sm rounded-xl transition-all group ${
-        activeListId === list.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-600 hover:bg-slate-50'
+      className={`flex items-center w-full px-4 py-1.5 text-[11px] rounded-lg transition-all group ${
+        activeListId === list.id ? 'bg-indigo-50 text-indigo-700 font-black' : 'text-slate-500 hover:bg-slate-50'
       }`}
     >
-      <span className={`ml-2 ${activeListId === list.id ? 'text-white' : 'opacity-40'}`}><Icons.List /></span>
-      <span className="truncate font-bold">{list.name}</span>
+      <span className="ml-2">📋</span>
+      <span className="truncate">{list.name}</span>
+      <span className="mr-auto opacity-0 group-hover:opacity-100 text-[10px]">...</span>
     </button>
   );
 
-  const renderFolder = (folder: Folder) => (
-    <div key={folder.id} className="mt-1">
-      <button
-        onClick={() => toggle(folder.id)}
-        className="flex items-center w-full px-2 py-2 text-xs text-slate-500 hover:text-slate-800 transition-colors"
-      >
-        <span className={`transform transition-transform ${expanded[folder.id] ? 'rotate-0' : '-rotate-90'}`}>
-          <Icons.ChevronDown />
-        </span>
-        <span className="mx-2 opacity-50"><Icons.Folder /></span>
-        <span className="font-black uppercase tracking-wider">{folder.name}</span>
-      </button>
-      {expanded[folder.id] && (
-        <div className="mr-6 border-r-2 border-slate-100 mt-1 space-y-1 pr-2">
-          {folder.lists.map(renderList)}
-        </div>
-      )}
-    </div>
-  );
-
   const renderSpace = (space: Space) => (
-    <div key={space.id} className="mt-4">
+    <div key={space.id} className="mt-1">
       <button
         onClick={() => toggle(space.id)}
-        className="flex items-center w-full px-3 py-3 text-sm font-black text-slate-700 hover:bg-slate-50 rounded-2xl transition-all"
+        className="flex items-center w-full px-2 py-2 text-[11px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg transition-all"
       >
-        <span className="w-8 h-8 rounded-xl flex items-center justify-center ml-2 shadow-sm" style={{ backgroundColor: space.color + '20', color: space.color }}>
+        <span className={`transition-transform ml-1 ${expanded[space.id] ? 'rotate-0' : '-rotate-90'}`}>▼</span>
+        <span className="w-5 h-5 rounded flex items-center justify-center ml-2 text-xs shadow-sm" style={{ backgroundColor: space.color + '20', color: space.color }}>
           {space.icon}
         </span>
         <span className="flex-1 text-right">{space.name}</span>
-        <span className={`transform transition-transform opacity-30 ${expanded[space.id] ? 'rotate-0' : '-rotate-90'}`}>
-          <Icons.ChevronDown />
-        </span>
       </button>
       {expanded[space.id] && (
-        <div className="mt-1 space-y-1 mr-2">
-          {space.folders.map(renderFolder)}
+        <div className="mr-4 mt-1 space-y-0.5 border-r border-slate-50 pr-1">
           {space.lists.map(renderList)}
+          {space.folders.map(folder => (
+            <div key={folder.id} className="mt-2">
+               <button 
+                 onClick={() => toggle(folder.id)}
+                 className="w-full flex items-center px-4 py-1.5 text-[10px] text-slate-400 font-black uppercase hover:text-slate-600"
+               >
+                  <span className={`ml-2 transition-transform ${expanded[folder.id] ? 'rotate-0' : '-rotate-90'}`}>▼</span>
+                  📁 {folder.name}
+               </button>
+               {expanded[folder.id] && (
+                 <div className="mr-4 mt-1">
+                    {folder.lists.map(renderList)}
+                 </div>
+               )}
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 
   return (
-    <div className="w-80 h-full bg-white border-l border-slate-100 flex flex-col overflow-hidden shadow-2xl z-30">
-      <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-white">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-1 shadow-xl shadow-slate-100 border border-slate-50">
-            <img 
-              src="https://www.jordanamco.com/img/JordanAMCO-web-2022.png" 
-              alt="JordanAMCO Logo" 
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <div className="flex flex-col">
-             <span className="font-black text-slate-900 text-sm leading-tight line-clamp-2">{workspace.name}</span>
-             <span className="text-[9px] text-indigo-500 font-black uppercase tracking-tighter mt-1">Enterprise PM Suite</span>
-          </div>
-        </div>
+    <div className="w-64 h-full bg-white border-l border-slate-100 flex flex-col overflow-hidden">
+      <div className="p-4 border-b border-slate-50">
+         <div className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
+            <div className="w-6 h-6 bg-indigo-600 rounded flex items-center justify-center text-white text-[10px] font-black shadow-lg shadow-indigo-100">J</div>
+            <span className="text-xs font-black text-slate-800 flex-1 truncate">JAMCO Workspace</span>
+            <span className="text-[10px] text-slate-300">⌵</span>
+         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-        {userRole === UserRole.ADMIN && (
-          <div className="mb-8 px-2 space-y-2">
-             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2">القائمة السريعة</div>
-             <button 
-                onClick={() => onSelectList(null, 'DASHBOARD')}
-                className={`flex items-center w-full px-4 py-3 text-xs font-black rounded-2xl transition-all ${
-                    activeListId === null ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-600 hover:bg-slate-50'
-                }`}
-             >
-                <span className="ml-3 text-lg">📊</span> لوحة المراقبة
-             </button>
-             <button 
-                onClick={() => onSelectList(null, 'ADMIN')}
-                className="flex items-center w-full px-4 py-3 text-xs font-black rounded-2xl text-indigo-600 hover:bg-indigo-50 transition-all"
-             >
-                <span className="ml-3 text-lg">🛡️</span> إعدادات المؤسسة
-             </button>
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+         <div className="space-y-1 mb-6">
+            <button 
+               onClick={() => onSelectList(null, 'LIST')}
+               className={`flex items-center w-full px-3 py-2 text-[11px] font-bold rounded-lg transition-all ${activeListId === null ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
+               <span className="ml-3">🌐</span> Everything
+            </button>
+            <button className="flex items-center w-full px-3 py-2 text-[11px] font-bold text-slate-500 hover:bg-slate-50 rounded-lg">
+               <span className="ml-3">📥</span> Inbox
+            </button>
+            <button className="flex items-center w-full px-3 py-2 text-[11px] font-bold text-slate-500 hover:bg-slate-50 rounded-lg">
+               <span className="ml-3">💬</span> Replies
+            </button>
+         </div>
 
-        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 mb-2 flex justify-between items-center">
-          <span>الهيكلية (Hierarchy)</span>
-          {userRole === UserRole.ADMIN && <button onClick={() => onSelectList(null, 'ADMIN')} className="text-indigo-600 text-[9px] hover:underline">تعديل</button>}
-        </div>
-        
-        {workspace.spaces.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 rounded-[32px] border border-dashed border-slate-200 mt-4">
-             <p className="text-[10px] font-bold text-slate-400 leading-relaxed">لم يتم إنشاء أقسام بعد. توجه إلى لوحة الإدارة للبدء.</p>
-          </div>
-        ) : workspace.spaces.map(renderSpace)}
+         <div className="mb-6">
+            <div className="px-3 py-1 text-[10px] font-black text-slate-300 uppercase tracking-widest flex justify-between">
+               Favorites <span>⌵</span>
+            </div>
+         </div>
+
+         <div>
+            <div className="px-3 py-1 text-[10px] font-black text-slate-300 uppercase tracking-widest flex justify-between items-center">
+               Spaces <button onClick={() => onSelectList(null, 'ADMIN')} className="text-lg hover:text-indigo-600">+</button>
+            </div>
+            <div className="mt-2 space-y-1">
+               {workspace.spaces.map(renderSpace)}
+            </div>
+         </div>
       </div>
 
-      <div className="p-6 bg-slate-50 border-t border-slate-100">
-        <button 
-          onClick={() => onSelectList(activeListId, 'LIST')}
-          className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-[20px] shadow-xl shadow-indigo-100 transition-all flex items-center justify-center active:scale-95 mb-4"
-        >
-          <span className="ml-2 text-lg font-bold">+</span> إنشاء أمر تشغيل
-        </button>
-        <div className="text-center">
-           <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Designed by ssoub</p>
-        </div>
+      <div className="p-4 border-t border-slate-50 flex items-center justify-between text-[11px] font-bold text-slate-400">
+         <button onClick={() => onSelectList(null, 'ADMIN')} className="hover:text-indigo-600 flex items-center gap-2">
+            <span>⚙️</span> Settings
+         </button>
+         {userRole === UserRole.ADMIN && <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded text-[8px] uppercase tracking-tighter">Admin</span>}
       </div>
     </div>
   );

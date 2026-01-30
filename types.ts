@@ -141,7 +141,7 @@ export interface Workspace {
   activities: Activity[];
 }
 
-export type ViewType = 'LIST' | 'BOARD' | 'DASHBOARD' | 'ADMIN' | 'TABLE' | 'CALENDAR' | 'WORKLOAD' | 'GOALS' | 'MINDMAP' | 'PORTFOLIO' | 'DOCS';
+export type ViewType = 'LIST' | 'BOARD' | 'DASHBOARD' | 'ADMIN' | 'TABLE' | 'CALENDAR' | 'WORKLOAD' | 'GOALS' | 'MINDMAP' | 'PORTFOLIO' | 'DOCS' | 'GANTT';
 
 export interface User {
   id: string;
