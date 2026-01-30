@@ -17,74 +17,26 @@ const AdminDashboard: React.FC<Props> = ({ workspace, users, onUpdateWorkspace, 
   const [newSpaceName, setNewSpaceName] = useState('');
   const [newSpaceDept, setNewSpaceDept] = useState<Department>(Department.PLANNING);
   
-  // Folder/List Management
-  const [selectedSpaceId, setSelectedSpaceId] = useState('');
-  const [newItemName, setNewItemName] = useState('');
-  const [itemType, setItemType] = useState<'folder' | 'list'>('list');
+  // Automation State
+  const [newAutoTrigger, setNewAutoTrigger] = useState<any>('STATUS_CHANGED');
+  const [newAutoAction, setNewAutoAction] = useState<any>('NOTIFY');
 
-  // User Management
-  const [newUserName, setNewUserName] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserRole, setNewUserRole] = useState<UserRole>(UserRole.TECHNICIAN);
-
-  const addSpace = () => {
-    if (!newSpaceName) return;
-    const newSpace: Space = {
-      id: `sp-${Date.now()}`,
-      name: newSpaceName,
-      department: newSpaceDept,
-      icon: '🏭',
-      color: '#' + Math.floor(Math.random()*16777215).toString(16),
-      folders: [],
-      lists: []
+  const addAutomation = () => {
+    const newAuto: Automation = {
+      id: `auto-${Date.now()}`,
+      name: `Automation ${workspace.automations.length + 1}`,
+      trigger: newAutoTrigger,
+      action: newAutoAction
     };
-    onUpdateWorkspace({ ...workspace, spaces: [...workspace.spaces, newSpace] });
-    setNewSpaceName('');
+    onUpdateWorkspace({ ...workspace, automations: [...workspace.automations, newAuto] });
   };
 
-  const deleteSpace = (id: string) => {
-    onUpdateWorkspace({ ...workspace, spaces: workspace.spaces.filter(s => s.id !== id) });
-  };
-
-  const addItemToSpace = () => {
-    if (!selectedSpaceId || !newItemName) return;
-    const updatedSpaces = workspace.spaces.map(s => {
-      if (s.id === selectedSpaceId) {
-        if (itemType === 'folder') {
-          const newFolder: Folder = { id: `f-${Date.now()}`, name: newItemName, spaceId: s.id, lists: [] };
-          return { ...s, folders: [...s.folders, newFolder] };
-        } else {
-          const newList: List = { id: `l-${Date.now()}`, name: newItemName, spaceId: s.id };
-          return { ...s, lists: [...s.lists, newList] };
-        }
-      }
-      return s;
-    });
-    onUpdateWorkspace({ ...workspace, spaces: updatedSpaces });
-    setNewItemName('');
-  };
-
-  const addUser = () => {
-    if (!newUserName || !newUserPassword) return;
-    const newUser: User = {
-      id: `u-${Date.now()}`,
-      name: newUserName,
-      role: newUserRole,
-      password: newUserPassword,
-      avatar: '👤'
-    };
-    onUpdateUsers([...users, newUser]);
-    setNewUserName('');
-    setNewUserPassword('');
-  };
-
-  const deleteUser = (id: string) => {
-    if (users.length <= 1) return alert('يجب بقاء مسؤول واحد على الأقل.');
-    onUpdateUsers(users.filter(u => u.id !== id));
+  const deleteAutomation = (id: string) => {
+    onUpdateWorkspace({ ...workspace, automations: workspace.automations.filter(a => a.id !== id) });
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-10 bg-[#f8fafc] custom-scrollbar">
+    <div className="flex-1 overflow-y-auto p-10 bg-[#f8fafc] custom-scrollbar" dir="rtl">
       <div className="max-w-6xl mx-auto pb-20">
         <header className="flex justify-between items-center mb-12">
           <div>
@@ -107,88 +59,108 @@ const AdminDashboard: React.FC<Props> = ({ workspace, users, onUpdateWorkspace, 
         </nav>
 
         {activeTab === 'org' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-             <section className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                <h2 className="text-xl font-black mb-6 flex items-center gap-3">
-                   <span className="w-1.5 h-8 bg-indigo-600 rounded-full"></span>
-                   إضافة قسم جديد
-                </h2>
-                <div className="space-y-4">
-                   <input value={newSpaceName} onChange={e => setNewSpaceName(e.target.value)} placeholder="اسم القسم (e.g. Laser Cutting)" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
-                   <select value={newSpaceDept} onChange={e => setNewSpaceDept(e.target.value as any)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none">
-                      {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
-                   </select>
-                   <button onClick={addSpace} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100">إضافة القسم للمؤسسة</button>
-                </div>
-             </section>
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              <section className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+                 <h2 className="text-xl font-black mb-6">إضافة قسم جديد</h2>
+                 <div className="space-y-4">
+                    <input value={newSpaceName} onChange={e => setNewSpaceName(e.target.value)} placeholder="اسم القسم" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:bg-white transition-all" />
+                    <select className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none">
+                       {Object.values(Department).map(d => <option key={d}>{d}</option>)}
+                    </select>
+                    <button onClick={() => {
+                       if(!newSpaceName) return;
+                       onUpdateWorkspace({...workspace, spaces: [...workspace.spaces, { id:`s-${Date.now()}`, name: newSpaceName, department: Department.PLANNING, icon:'🏭', color:'#6366f1', folders:[], lists:[] }]});
+                       setNewSpaceName('');
+                    }} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs shadow-xl shadow-indigo-100">إضافة القسم</button>
+                 </div>
+              </section>
 
-             <section className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                <h2 className="text-xl font-black mb-6 flex items-center gap-3">
-                   <span className="w-1.5 h-8 bg-emerald-500 rounded-full"></span>
-                   إضافة (مجلد / قائمة)
-                </h2>
-                <div className="space-y-4">
-                   <select value={selectedSpaceId} onChange={e => setSelectedSpaceId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none">
-                      <option value="">-- اختر القسم الحاضن --</option>
-                      {workspace.spaces.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                   </select>
-                   <div className="flex gap-2">
-                      <button onClick={() => setItemType('folder')} className={`flex-1 py-3 rounded-xl text-[10px] font-black border transition-all ${itemType === 'folder' ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>مجلد 📁</button>
-                      <button onClick={() => setItemType('list')} className={`flex-1 py-3 rounded-xl text-[10px] font-black border transition-all ${itemType === 'list' ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>قائمة 📋</button>
-                   </div>
-                   <input value={newItemName} onChange={e => setNewItemName(e.target.value)} placeholder="الاسم الفني للمجموعة" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
-                   <button onClick={addItemToSpace} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-50">تثبيت في الهيكل</button>
-                </div>
-             </section>
+              <div className="space-y-4">
+                 <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest px-4">الأقسام الحالية</h3>
+                 {workspace.spaces.map(s => (
+                    <div key={s.id} className="bg-white p-6 rounded-3xl border border-slate-100 flex items-center justify-between">
+                       <span className="font-black text-slate-800">{s.name}</span>
+                       <button onClick={() => onUpdateWorkspace({...workspace, spaces: workspace.spaces.filter(x=>x.id !== s.id)})} className="text-rose-400 hover:text-rose-600 text-[10px] font-black">حذف</button>
+                    </div>
+                 ))}
+              </div>
+           </div>
+        )}
 
-             <div className="lg:col-span-2 space-y-6">
-                <h3 className="text-xl font-black text-slate-800">الأقسام الحالية</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {workspace.spaces.map(s => (
-                     <div key={s.id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm group">
-                        <div className="flex items-center justify-between mb-4">
-                           <div className="flex items-center gap-3">
-                              <span className="text-2xl">{s.icon}</span>
-                              <span className="font-black text-slate-800">{s.name}</span>
-                           </div>
-                           <button onClick={() => deleteSpace(s.id)} className="text-rose-400 opacity-0 group-hover:opacity-100 hover:text-rose-600 transition-all text-xs font-black">حذف</button>
-                        </div>
-                        <div className="space-y-2">
-                           {s.folders.map(f => <div key={f.id} className="text-[10px] font-bold text-slate-400 px-3 py-1 bg-slate-50 rounded-lg">📁 {f.name}</div>)}
-                           {s.lists.map(l => <div key={l.id} className="text-[10px] font-bold text-indigo-500 px-3 py-1 bg-indigo-50 rounded-lg">📋 {l.name}</div>)}
-                        </div>
-                     </div>
-                   ))}
-                </div>
-             </div>
-          </div>
+        {activeTab === 'auto' && (
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              <div className="lg:col-span-1 bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 h-fit">
+                 <h2 className="text-xl font-black mb-8">إنشاء قاعدة أتمتة ⚡</h2>
+                 <div className="space-y-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">عندما يحدث (Trigger)</label>
+                       <select value={newAutoTrigger} onChange={e => setNewAutoTrigger(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-xs font-black outline-none">
+                          <option value="STATUS_CHANGED">تغيرت حالة المهمة</option>
+                          <option value="TASK_CREATED">تم إنشاء مهمة جديدة</option>
+                          <option value="DUE_DATE_NEAR">اقترب موعد الاستحقاق</option>
+                       </select>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">قم بـ (Action)</label>
+                       <select value={newAutoAction} onChange={e => setNewAutoAction(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-xs font-black outline-none">
+                          <option value="NOTIFY">إرسال إشعار فوري</option>
+                          <option value="SET_ASSIGNEE">تعيين موظف تلقائي</option>
+                          <option value="MOVE_LIST">نقل المهمة لقائمة أخرى</option>
+                       </select>
+                    </div>
+                    <button onClick={addAutomation} className="w-full py-4 bg-amber-500 text-white rounded-2xl font-black text-xs shadow-xl shadow-amber-100 hover:bg-amber-600 transition-all">تفعيل القاعدة الآن</button>
+                 </div>
+              </div>
+
+              <div className="lg:col-span-2 space-y-4">
+                 <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest px-4">القواعد المفعلة ({workspace.automations.length})</h3>
+                 {workspace.automations.map(auto => (
+                    <div key={auto.id} className="bg-white p-8 rounded-[32px] border border-slate-100 flex items-center justify-between group shadow-sm hover:shadow-md transition-all">
+                       <div className="flex items-center gap-6">
+                          <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center text-xl">⚡</div>
+                          <div>
+                             <div className="text-sm font-black text-slate-800">{auto.trigger} → {auto.action}</div>
+                             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Active System Rule</div>
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-4">
+                          <div className="w-10 h-6 bg-emerald-500 rounded-full relative">
+                             <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
+                          </div>
+                          <button onClick={() => deleteAutomation(auto.id)} className="text-slate-300 hover:text-rose-500 transition-colors">✕</button>
+                       </div>
+                    </div>
+                 ))}
+                 {workspace.automations.length === 0 && (
+                    <div className="py-20 text-center opacity-20 border-2 border-dashed border-slate-200 rounded-[40px]">
+                       <p className="font-black">لا توجد أتمتة مفعلة. ابدأ بتعريف القواعد لتوفير الوقت!</p>
+                    </div>
+                 )}
+              </div>
+           </div>
         )}
 
         {activeTab === 'users' && (
-           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in fade-in">
-              <div className="lg:col-span-1 bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 h-fit sticky top-10">
-                 <h2 className="text-xl font-black mb-6">إضافة موظف للنظام</h2>
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              <div className="lg:col-span-1 bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 h-fit">
+                 <h2 className="text-xl font-black mb-8">إضافة موظف 👤</h2>
                  <div className="space-y-4">
-                    <input value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="اسم الدخول" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:bg-white" />
-                    <input type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} placeholder="كلمة المرور" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:bg-white" />
-                    <select value={newUserRole} onChange={e => setNewUserRole(e.target.value as any)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none">
-                       {Object.values(UserRole).map(r => <option key={r} value={r}>{r}</option>)}
+                    <input placeholder="الاسم الكامل" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:bg-white transition-all" />
+                    <select className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none">
+                       {Object.values(UserRole).map(r => <option key={r}>{r}</option>)}
                     </select>
-                    <button onClick={addUser} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">إنشاء حساب الموظف</button>
+                    <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs shadow-xl shadow-indigo-100">إنشاء حساب</button>
                  </div>
               </div>
               <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                  {users.map(u => (
-                   <div key={u.id} className="bg-white p-6 rounded-[32px] border border-slate-100 flex items-center justify-between group hover:shadow-lg transition-all">
-                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">{u.avatar}</div>
-                         <div>
-                            <div className="font-black text-slate-800">{u.name}</div>
-                            <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{u.role}</div>
-                         </div>
-                      </div>
-                      <button onClick={() => deleteUser(u.id)} className="text-rose-400 opacity-0 group-hover:opacity-100 hover:text-rose-600 transition-all font-black text-[10px]">فصل ✕</button>
-                   </div>
+                    <div key={u.id} className="bg-white p-6 rounded-3xl border border-slate-100 flex items-center gap-4">
+                       <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-2xl">{u.avatar}</div>
+                       <div>
+                          <div className="text-sm font-black text-slate-800">{u.name}</div>
+                          <div className="text-[10px] font-black text-indigo-500 uppercase">{u.role}</div>
+                       </div>
+                    </div>
                  ))}
               </div>
            </div>

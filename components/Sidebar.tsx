@@ -85,23 +85,30 @@ const Sidebar: React.FC<SidebarProps> = ({ workspace, activeListId, userRole, on
             >
                <span className="ml-3">🌐</span> Everything
             </button>
-            <button className="flex items-center w-full px-3 py-2 text-[11px] font-bold text-slate-500 hover:bg-slate-50 rounded-lg">
+            <button 
+               onClick={() => onSelectList(null, 'INBOX')}
+               className="flex items-center w-full px-3 py-2 text-[11px] font-bold text-slate-500 hover:bg-slate-50 rounded-lg transition-all"
+            >
                <span className="ml-3">📥</span> Inbox
             </button>
-            <button className="flex items-center w-full px-3 py-2 text-[11px] font-bold text-slate-500 hover:bg-slate-50 rounded-lg">
+            <button 
+               onClick={() => onSelectList(null, 'REPLIES')}
+               className="flex items-center w-full px-3 py-2 text-[11px] font-bold text-slate-500 hover:bg-slate-50 rounded-lg transition-all"
+            >
                <span className="ml-3">💬</span> Replies
             </button>
          </div>
 
          <div className="mb-6">
             <div className="px-3 py-1 text-[10px] font-black text-slate-300 uppercase tracking-widest flex justify-between">
-               Favorites <span>⌵</span>
+               Favorites <span className="cursor-pointer hover:text-slate-600">⌵</span>
             </div>
+            <div className="px-6 py-2 text-[10px] text-slate-400 font-bold italic opacity-40">No favorites yet</div>
          </div>
 
          <div>
             <div className="px-3 py-1 text-[10px] font-black text-slate-300 uppercase tracking-widest flex justify-between items-center">
-               Spaces <button onClick={() => onSelectList(null, 'ADMIN')} className="text-lg hover:text-indigo-600">+</button>
+               Spaces <button onClick={() => onSelectList(null, 'ADMIN')} className="text-lg hover:text-indigo-600 transition-colors">+</button>
             </div>
             <div className="mt-2 space-y-1">
                {workspace.spaces.map(renderSpace)}
@@ -110,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({ workspace, activeListId, userRole, on
       </div>
 
       <div className="p-4 border-t border-slate-50 flex items-center justify-between text-[11px] font-bold text-slate-400">
-         <button onClick={() => onSelectList(null, 'ADMIN')} className="hover:text-indigo-600 flex items-center gap-2">
+         <button onClick={() => onSelectList(null, 'ADMIN')} className="hover:text-indigo-600 flex items-center gap-2 transition-colors">
             <span>⚙️</span> Settings
          </button>
          {userRole === UserRole.ADMIN && <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded text-[8px] uppercase tracking-tighter">Admin</span>}
