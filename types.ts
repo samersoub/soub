@@ -115,8 +115,8 @@ export interface Machine {
   type: string;
   status: 'RUNNING' | 'IDLE' | 'MAINTENANCE';
   loadPercentage?: number;
-  x: number; // إحداثيات الخريطة
-  y: number; // إحداثيات الخريطة
+  x: number; 
+  y: number; 
 }
 
 export interface Automation {
@@ -157,12 +157,15 @@ export interface Task {
   machineId?: string;
   billOfMaterials?: BOMItem[];
   createdAt: string;
+  startDate?: string;
+  dueDate?: string;
   productionData: any;
   comments: TaskComment[];
   subtasks: Subtask[];
   attachments?: Attachment[];
   estimatedHours?: number;
   actualHours?: number;
+  isInventoryDeducted?: boolean; // منع الخصم المتكرر
 }
 
 export interface Workspace {

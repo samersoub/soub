@@ -1,7 +1,6 @@
 
-import React, { useState, useRef } from 'react';
-import { Task, TaskStatus, User, Subtask, TaskComment, Attachment, Machine, BOMItem, InventoryItem } from '../types';
-import { GoogleGenAI, Type } from "@google/genai";
+import React, { useState } from 'react';
+import { Task, TaskStatus, User, Subtask, BOMItem, InventoryItem } from '../types';
 
 interface Props {
   task: Task;
@@ -12,177 +11,134 @@ interface Props {
 }
 
 const TaskWorkflowModal: React.FC<Props> = ({ task, user, workspace, onClose, onUpdate }) => {
+  const [activeTab, setActiveTab] = useState<'SPECS' | 'STEPS' | 'RESOURCES'>('SPECS');
   const [newComment, setNewComment] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isEstimatingMaterials, setIsEstimatingMaterials] = useState(false);
-  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
-  const [aiAnalysisResult, setAiAnalysisResult] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'DETAILS' | 'ATTACHMENTS' | 'INVENTORY' | 'QUALITY'>('DETAILS');
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-  const handleAIWriteDescription = async () => {
-    if (!task.title) return;
-    setIsGenerating(true);
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Write a professional technical description for a metal forming task: "${task.title}". Context: JAMCO (Metal Forming). Language: Arabic. Conciseness is key.`,
-      });
-      if (response.text) onUpdate({ ...task, description: response.text });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleQualityImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsAnalyzingImage(true);
-    setAiAnalysisResult("جاري تحليل قطعة المعدن...");
-
-    try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Data = (reader.result as string).split(',')[1];
-        
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: {
-            parts: [
-              { inlineData: { data: base64Data, mimeType: file.type } },
-              { text: "تحقق من جودة هذه القطعة المعدنية المصنعة في شركة JAMCO. ابحث عن الخدوش، عدم استواء الحواف، أو عيوب الطلاء. قدم تقريراً فنياً مختصراً باللغة العربية مع إعطاء قرار (ناجح/فاشل)." }
-            ]
-          }
-        });
-        
-        setAiAnalysisResult(response.text || "فشل التحليل.");
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      setAiAnalysisResult("حدث خطأ أثناء فحص الصورة.");
-    } finally {
-      setIsAnalyzingImage(false);
-    }
-  };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-hidden font-['Cairo']" dir="rtl">
-      <div className="bg-white w-full max-w-[1250px] h-[88vh] rounded-[48px] shadow-2xl flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 bg-zinc-950/20 backdrop-blur-sm z-[100] flex items-center justify-center p-8 fade-up">
+      <div className="bg-white w-full max-w-5xl h-[90vh] shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
         
-        <header className="h-16 border-b border-slate-50 flex items-center justify-between px-10 bg-white">
-          <div className="flex items-center gap-6">
-             <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-50 flex items-center justify-center transition-colors">✕</button>
-             <div className="flex bg-slate-100 p-1 rounded-2xl">
-                <button onClick={() => setActiveTab('DETAILS')} className={`px-6 py-1.5 text-[11px] font-black rounded-xl transition-all ${activeTab === 'DETAILS' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>التفاصيل التقنية</button>
-                <button onClick={() => setActiveTab('QUALITY')} className={`px-6 py-1.5 text-[11px] font-black rounded-xl transition-all ${activeTab === 'QUALITY' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>فحص الجودة ✨</button>
-                <button onClick={() => setActiveTab('INVENTORY')} className={`px-6 py-1.5 text-[11px] font-black rounded-xl transition-all ${activeTab === 'INVENTORY' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>المواد والتكاليف</button>
-                <button onClick={() => setActiveTab('ATTACHMENTS')} className={`px-6 py-1.5 text-[11px] font-black rounded-xl transition-all ${activeTab === 'ATTACHMENTS' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>المرفقات</button>
-             </div>
-          </div>
-          <div className="flex items-center gap-3">
-             <div className="flex -space-x-2 mr-4">
-                <div className="w-8 h-8 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-[10px] font-black text-white shadow-lg animate-pulse">أ</div>
-                <div className="w-8 h-8 rounded-full bg-indigo-500 border-2 border-white flex items-center justify-center text-[10px] font-black text-white shadow-lg">س</div>
-             </div>
-             <button onClick={handleAIWriteDescription} disabled={isGenerating} className="text-indigo-600 text-xs font-black flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-xl transition-all">
-                {isGenerating ? '⌛ جاري الكتابة...' : '✨ وصف ذكي'}
-             </button>
-          </div>
+        {/* Engineering Header */}
+        <header className="h-14 border-b border-zinc-100 flex items-center justify-between px-6 bg-zinc-50">
+           <div className="flex items-center gap-4">
+              <button onClick={onClose} className="text-zinc-400 hover:text-zinc-950 transition-colors">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+              <div className="h-6 w-px bg-zinc-200"></div>
+              <div className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
+                 ENGINEERING_SPEC <span className="mx-2 opacity-20">|</span> {task.id.split('-')[1]}
+              </div>
+           </div>
+           
+           <div className="flex bg-zinc-200/50 p-1 rounded-sm gap-1">
+              {['SPECS', 'STEPS', 'RESOURCES'].map(tab => (
+                 <button 
+                    key={tab} 
+                    onClick={() => setActiveTab(tab as any)}
+                    className={`px-6 py-1 text-[9px] font-black tracking-widest uppercase transition-all ${activeTab === tab ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                 >
+                    {tab}
+                 </button>
+              ))}
+           </div>
         </header>
 
         <div className="flex-1 flex overflow-hidden">
-          <div className="flex-[2.5] overflow-y-auto custom-scrollbar p-12 bg-white border-l border-slate-50">
-            {activeTab === 'DETAILS' && (
-              <>
-                <input 
-                  className="text-4xl font-black text-slate-900 w-full outline-none mb-10 placeholder:text-slate-100 border-none bg-transparent"
-                  value={task.title}
-                  onChange={(e) => onUpdate({...task, title: e.target.value})}
-                  placeholder="عنوان المهمة..."
-                />
-                <div className="grid grid-cols-2 gap-12 mb-16">
-                  <div className="space-y-6">
-                      <div className="flex items-center">
-                        <span className="w-32 text-[11px] font-black text-slate-400 uppercase tracking-widest">سير العمل</span>
-                        <select value={task.status} onChange={(e) => onUpdate({...task, status: e.target.value})} className="bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl font-black text-[10px] outline-none">
-                            {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                      </div>
+          {/* Main Content Area */}
+          <div className="flex-[3] overflow-y-auto custom-scrollbar p-12 border-r border-zinc-100">
+            <div className="max-w-2xl mx-auto">
+               <div className="mb-12">
+                  <div className="flex items-center gap-3 mb-4">
+                     <span className="text-[9px] font-black text-white bg-indigo-600 px-2 py-1 uppercase tracking-widest">{task.status}</span>
+                     <span className="text-[9px] font-black text-zinc-300 uppercase">{task.currentDepartment} UNIT</span>
                   </div>
-                </div>
-                <textarea 
-                  className="w-full bg-slate-50/50 rounded-[32px] p-8 text-sm font-bold text-slate-600 outline-none min-h-[160px]"
-                  value={task.description}
-                  onChange={(e) => onUpdate({...task, description: e.target.value})}
-                />
-              </>
-            )}
+                  <input 
+                    value={task.title} 
+                    onChange={e => onUpdate({...task, title: e.target.value})} 
+                    className="text-3xl font-black text-zinc-900 w-full outline-none border-none bg-transparent" 
+                    placeholder="ENTER_TASK_TITLE..." 
+                  />
+               </div>
 
-            {activeTab === 'QUALITY' && (
-              <div className="animate-in fade-in slide-in-from-left-4">
-                 <div className="mb-10">
-                    <h2 className="text-2xl font-black text-slate-800">فحص الجودة بالرؤية الحاسوبية ✨</h2>
-                    <p className="text-slate-400 text-xs font-bold mt-1">التقط صورة للقطعة المعدنية، وسيقوم JAMCO AI بتحليل العيوب تلقائياً.</p>
-                 </div>
-
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[48px] aspect-video flex flex-col items-center justify-center p-10 text-center relative overflow-hidden group">
-                       {isAnalyzingImage ? (
-                          <div className="animate-pulse text-indigo-600 font-black text-xl">جاري المسح الضوئي للقطعة...</div>
-                       ) : (
-                          <>
-                             <div className="text-5xl mb-4 group-hover:scale-125 transition-transform">📸</div>
-                             <p className="font-black text-slate-400 text-sm">اضغط لتحميل صورة القطعة أو التقاطها</p>
-                             <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleQualityImageUpload} />
-                          </>
-                       )}
+               {activeTab === 'SPECS' && (
+                 <div className="space-y-12 animate-soft-fade">
+                    <div className="grid grid-cols-2 gap-8 border-t border-zinc-100 pt-8">
+                       <div className="space-y-2">
+                          <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">OWNER_ID</label>
+                          <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-100">
+                             <div className="w-5 h-5 bg-zinc-900 text-[9px] font-black text-white flex items-center justify-center uppercase">{task.assignees[0]?.[0] || '?'}</div>
+                             <span className="text-[11px] font-bold text-zinc-600">{task.assignees[0] || 'UNASSIGNED'}</span>
+                          </div>
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">PRIORITY_LEVEL</label>
+                          <select 
+                            value={task.priority} 
+                            onChange={e => onUpdate({...task, priority: e.target.value as any})}
+                            className="w-full p-3 bg-zinc-50 border border-zinc-100 text-[11px] font-bold outline-none appearance-none cursor-pointer"
+                          >
+                             {['URGENT', 'HIGH', 'NORMAL', 'LOW'].map(p => <option key={p} value={p}>{p}</option>)}
+                          </select>
+                       </div>
                     </div>
 
-                    <div className={`p-8 rounded-[48px] border transition-all ${aiAnalysisResult ? 'bg-indigo-600 text-white border-transparent shadow-2xl' : 'bg-white border-slate-100 text-slate-400'}`}>
-                       <h3 className="text-sm font-black uppercase tracking-widest mb-4">تقرير المختبر الذكي</h3>
-                       <p className="text-sm font-bold leading-relaxed whitespace-pre-wrap italic">
-                          {aiAnalysisResult || "بانتظار تحليل الصورة..."}
-                       </p>
-                       {aiAnalysisResult && (
-                         <div className="mt-8 flex gap-3">
-                            <button className="bg-white/20 px-6 py-2 rounded-xl text-[10px] font-black hover:bg-white/30 transition-all" onClick={() => onUpdate({...task, status: TaskStatus.DONE})}>اعتماد التقرير</button>
-                            <button className="bg-rose-500 px-6 py-2 rounded-xl text-[10px] font-black" onClick={() => setAiAnalysisResult(null)}>إعادة الفحص</button>
-                         </div>
-                       )}
+                    <div className="space-y-4">
+                       <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">TECHNICAL_NOTES</label>
+                       <textarea 
+                         value={task.description} 
+                         onChange={e => onUpdate({...task, description: e.target.value})} 
+                         className="w-full min-h-[350px] bg-zinc-50 border-none p-6 text-sm font-medium text-zinc-800 outline-none leading-relaxed placeholder:text-zinc-200" 
+                         placeholder="Enter technical parameters, dimensions, and material requirements..." 
+                       />
                     </div>
                  </div>
-              </div>
-            )}
+               )}
 
-            {activeTab === 'INVENTORY' && (
-              <div className="bg-slate-50 rounded-[32px] p-8 border border-slate-100">
-                 <h3 className="text-sm font-black text-slate-800 mb-6">قائمة المواد والتكاليف</h3>
-                 <p className="text-slate-400 text-xs font-bold">يتم جلب الأسعار حياً من المستودع المركزي.</p>
-              </div>
-            )}
+               {activeTab === 'STEPS' && (
+                 <div className="space-y-6 animate-soft-fade">
+                    <h3 className="text-sm font-black text-zinc-900 uppercase tracking-widest border-b border-zinc-100 pb-4">Production Workflow</h3>
+                    <div className="space-y-2">
+                       {task.subtasks?.map(sub => (
+                          <div key={sub.id} className="flex items-center gap-4 p-4 border border-zinc-100 bg-white hover:bg-zinc-50 transition-all">
+                             <input type="checkbox" checked={sub.isCompleted} className="w-4 h-4 border-zinc-300 rounded-none text-zinc-950 focus:ring-0" />
+                             <span className={`text-[12px] font-bold flex-1 ${sub.isCompleted ? 'text-zinc-300 line-through' : 'text-zinc-700'}`}>{sub.title}</span>
+                          </div>
+                       ))}
+                       <button className="w-full py-4 border border-dashed border-zinc-200 text-[10px] font-black text-zinc-400 uppercase tracking-widest hover:border-zinc-900 hover:text-zinc-900 transition-all">+ Add New Step</button>
+                    </div>
+                 </div>
+               )}
+            </div>
           </div>
 
-          <div className="flex-1 bg-slate-50/50 flex flex-col">
-            <div className="h-16 border-b border-slate-100 flex items-center px-8 bg-white">
-               <h3 className="text-xs font-black text-slate-800 tracking-widest uppercase">النقاش الفني اللحظي</h3>
-            </div>
-            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-               {task.comments.map(c => (
-                 <div key={c.id} className="flex gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xs font-black text-indigo-600 border border-slate-100 flex-shrink-0">{c.userName[0]}</div>
-                    <div className="bg-white p-4 rounded-[24px] rounded-tr-none text-xs font-bold text-slate-600 border border-slate-100 shadow-sm">{c.text}</div>
-                 </div>
-               ))}
-            </div>
-            <div className="p-8 bg-white border-t border-slate-100">
-               <div className="bg-slate-50 border border-slate-200 rounded-[28px] p-4 flex items-end gap-3">
-                  <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} className="flex-1 bg-transparent border-none outline-none text-xs font-bold text-slate-700 min-h-[60px] resize-none" placeholder="اكتب تعليقاً..." />
-                  <button onClick={() => { if(!newComment.trim()) return; onUpdate({...task, comments: [{id:`c-${Date.now()}`, userId:user.id, userName:user.name, text:newComment, timestamp:new Date().toISOString()}, ...(task.comments||[])]}); setNewComment(''); }} className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">➤</button>
-               </div>
-            </div>
+          {/* Activity Log */}
+          <div className="flex-1 bg-zinc-50 flex flex-col">
+             <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
+                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Activity_Stream</span>
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+             </div>
+             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                {task.comments?.map(c => (
+                   <div key={c.id} className="space-y-1">
+                      <div className="flex justify-between text-[8px] font-black uppercase text-zinc-400">
+                         <span>{c.userName}</span>
+                         <span>{new Date(c.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                      </div>
+                      <div className="bg-white p-3 text-[11px] font-medium text-zinc-700 border border-zinc-100 shadow-sm leading-relaxed">
+                         {c.text}
+                      </div>
+                   </div>
+                ))}
+             </div>
+             <div className="p-4 bg-white border-t border-zinc-100">
+                <input 
+                   value={newComment}
+                   onChange={e => setNewComment(e.target.value)}
+                   onKeyDown={e => e.key === 'Enter' && (onUpdate({...task, comments: [{id:`c-${Date.now()}`, userId:user.id, userName:user.name, text:newComment, timestamp:new Date().toISOString()}, ...(task.comments||[])]}), setNewComment(''))}
+                   placeholder="Enter log update..." 
+                   className="w-full p-3 bg-zinc-50 border border-zinc-100 text-[10px] font-bold outline-none focus:border-indigo-600 transition-all"
+                />
+             </div>
           </div>
         </div>
       </div>
